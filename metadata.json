@@ -1,0 +1,5 @@
+{
+  "name": "拼豆图纸生成器",
+  "description": "将图片转换为拼豆（Perler Beads）像素图纸，并生成材料清单。",
+  "requestFramePermissions": []
+}
