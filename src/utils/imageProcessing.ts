@@ -87,7 +87,8 @@ export async function processImage(
   imageUrl: string, 
   targetWidth: number,
   useDithering: boolean = true,
-  useSmoothing: boolean = false
+  useSmoothing: boolean = false,
+  optimizeColors: boolean = false
 ): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -111,8 +112,8 @@ export async function processImage(
       const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
       const data = imageData.data;
       
-      const pixels: PixelData[] = [];
-      const colorCounts: Record<string, { color: Color; count: number }> = {};
+      let pixels: PixelData[] = [];
+      let colorCounts: Record<string, { color: Color; count: number }> = {};
       
       const floatData = new Float32Array(data);
       
@@ -162,6 +163,57 @@ export async function processImage(
             distributeError(0, 1, 5 / 16);
             distributeError(1, 1, 1 / 16);
           }
+        }
+      }
+
+      // 优化颜色种类：将数量极少的颜色合并到最接近的主要颜色中
+      if (optimizeColors) {
+        const totalPixels = pixels.filter(p => p.color !== null).length;
+        const threshold = Math.max(1, Math.floor(totalPixels * 0.01)); // 1% 阈值
+        
+        const colorsArray = Object.values(colorCounts);
+        const minorColors = colorsArray.filter(c => c.count < threshold);
+        const majorColors = colorsArray.filter(c => c.count >= threshold);
+
+        if (minorColors.length > 0 && majorColors.length > 0) {
+          const colorMap = new Map<string, Color>();
+
+          minorColors.forEach(minor => {
+            let minDistance = Infinity;
+            let bestMatch = majorColors[0].color;
+
+            majorColors.forEach(major => {
+              const dist = colorDistance(minor.color.rgb, major.color.rgb);
+              if (dist < minDistance) {
+                minDistance = dist;
+                bestMatch = major.color;
+              }
+            });
+
+            colorMap.set(minor.color.hex, bestMatch);
+          });
+
+          // 重新计算像素和颜色统计
+          const newPixels: PixelData[] = [];
+          const newColorCounts: Record<string, { color: Color; count: number }> = {};
+
+          pixels.forEach(pixel => {
+            if (!pixel.color) {
+              newPixels.push(pixel);
+              return;
+            }
+
+            const mappedColor = colorMap.get(pixel.color.hex) || pixel.color;
+            newPixels.push({ ...pixel, color: mappedColor });
+
+            if (!newColorCounts[mappedColor.hex]) {
+              newColorCounts[mappedColor.hex] = { color: mappedColor, count: 0 };
+            }
+            newColorCounts[mappedColor.hex].count++;
+          });
+
+          pixels = newPixels;
+          colorCounts = newColorCounts;
         }
       }
       

@@ -12,17 +12,18 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const [useDithering, setUseDithering] = useState(false);
-  const [useSmoothing, setUseSmoothing] = useState(false);
+  const [useSmoothing, setUseSmoothing] = useState(true);
+  const [optimizeColors, setOptimizeColors] = useState(true);
 
   useEffect(() => {
     if (imageUrl) {
       setIsProcessing(true);
-      processImage(imageUrl, boardSize, useDithering, useSmoothing)
+      processImage(imageUrl, boardSize, useDithering, useSmoothing, optimizeColors)
         .then(setResult)
         .catch(console.error)
         .finally(() => setIsProcessing(false));
     }
-  }, [imageUrl, boardSize, useDithering, useSmoothing]);
+  }, [imageUrl, boardSize, useDithering, useSmoothing, optimizeColors]);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
@@ -112,6 +113,19 @@ export default function App() {
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${useSmoothing ? 'bg-indigo-600' : 'bg-gray-200'}`}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useSmoothing ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 block">优化材料种类</label>
+                    <span className="text-xs text-gray-500">自动合并极少使用的颜色，减少购买材料的种类</span>
+                  </div>
+                  <button
+                    onClick={() => setOptimizeColors(!optimizeColors)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${optimizeColors ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${optimizeColors ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
               </div>
